@@ -18,7 +18,6 @@
 
 #include <limits>
 #include <memory>
-#include <utility>
 
 #include "modules/common/proto/geometry.pb.h"
 #include "modules/prediction/common/prediction_gflags.h"
@@ -31,14 +30,16 @@ namespace prediction {
 using apollo::common::PathPoint;
 using apollo::common::Point3D;
 using apollo::common::TrajectoryPoint;
-using apollo::common::adapter::AdapterConfig;
 using apollo::hdmap::LaneInfo;
 
-void SequencePredictor::Predict(Obstacle* obstacle) {
+bool SequencePredictor::Predict(
+    const ADCTrajectoryContainer* adc_trajectory_container, Obstacle* obstacle,
+    ObstaclesContainer* obstacles_container) {
   Clear();
 
   CHECK_NOTNULL(obstacle);
   CHECK_GT(obstacle->history_size(), 0);
+  return true;
 }
 
 void SequencePredictor::Clear() { Predictor::Clear(); }
@@ -56,6 +57,8 @@ std::string SequencePredictor::ToString(const LaneSequence& sequence) {
 
 void SequencePredictor::FilterLaneSequences(
     const Feature& feature, const std::string& lane_id,
+    const Obstacle* ego_vehicle_ptr,
+    const ADCTrajectoryContainer* adc_trajectory_container,
     std::vector<bool>* enable_lane_sequence) {
   if (!feature.has_lane() || !feature.lane().has_lane_graph()) {
     return;
@@ -89,7 +92,8 @@ void SequencePredictor::FilterLaneSequences(
     }
 
     // The obstacle has interference with ADC within a small distance
-    double distance = GetLaneChangeDistanceWithADC(sequence);
+    double distance = GetLaneChangeDistanceWithADC(sequence, ego_vehicle_ptr,
+                                                   adc_trajectory_container);
     ADEBUG << "Distance to ADC " << std::fixed << std::setprecision(6)
            << distance;
     if (distance > 0.0 && distance < FLAGS_lane_change_dist) {
@@ -197,27 +201,19 @@ SequencePredictor::LaneChangeType SequencePredictor::GetLaneChangeType(
 }
 
 double SequencePredictor::GetLaneChangeDistanceWithADC(
-    const LaneSequence& lane_sequence) {
-  auto pose_container =
-      ContainerManager::Instance()->GetContainer<PoseContainer>(
-          AdapterConfig::LOCALIZATION);
-  auto adc_container =
-      ContainerManager::Instance()->GetContainer<ADCTrajectoryContainer>(
-          AdapterConfig::PLANNING_TRAJECTORY);
-
-  CHECK_NOTNULL(pose_container);
-  CHECK_NOTNULL(adc_container);
-
-  if (!adc_container->HasOverlap(lane_sequence)) {
+    const LaneSequence& lane_sequence, const Obstacle* ego_vehicle_ptr,
+    const ADCTrajectoryContainer* adc_trajectory_container) {
+  if (!adc_trajectory_container->HasOverlap(lane_sequence)) {
     ADEBUG << "The sequence [" << ToString(lane_sequence)
            << "] has no overlap with ADC.";
     return std::numeric_limits<double>::max();
   }
 
   Eigen::Vector2d adc_position;
-  if (pose_container->ToPerceptionObstacle() != nullptr) {
-    adc_position[0] = pose_container->ToPerceptionObstacle()->position().x();
-    adc_position[1] = pose_container->ToPerceptionObstacle()->position().y();
+  if (ego_vehicle_ptr != nullptr && ego_vehicle_ptr->history_size() > 0) {
+    const auto& position = ego_vehicle_ptr->latest_feature().position();
+    adc_position[0] = position.x();
+    adc_position[1] = position.y();
 
     std::string obstacle_lane_id = lane_sequence.lane_segment(0).lane_id();
     double obstacle_lane_s = lane_sequence.lane_segment(0).start_s();
@@ -368,10 +364,16 @@ bool SequencePredictor::GetLongitudinalPolynomial(
     a = lane_sequence.acceleration();
   }
   int lane_seg_start_idx = lane_sequence.adc_lane_segment_idx();
-  int lane_point_start_idx = lane_sequence.lane_segment(lane_seg_start_idx)
-      .adc_lane_point_idx();
+  int lane_point_start_idx =
+      lane_sequence.lane_segment(lane_seg_start_idx).adc_lane_point_idx();
+  if (lane_point_start_idx >=
+      lane_sequence.lane_segment(lane_seg_start_idx).lane_point_size()) {
+    lane_point_start_idx =
+        lane_sequence.lane_segment(lane_seg_start_idx).lane_point_size() - 1;
+  }
   double lane_heading = lane_sequence.lane_segment(lane_seg_start_idx)
-      .lane_point(lane_point_start_idx).heading();
+                            .lane_point(lane_point_start_idx)
+                            .heading();
 
   // Set the initial conditions for the diff. eqn.
   double s0 = 0.0;
@@ -411,10 +413,16 @@ bool SequencePredictor::GetLateralPolynomial(
   double v = feature.speed();
   Point3D position = feature.position();
   int lane_seg_start_idx = lane_sequence.adc_lane_segment_idx();
-  int lane_point_start_idx = lane_sequence.lane_segment(lane_seg_start_idx)
-      .adc_lane_point_idx();
-  const LanePoint& start_lane_point = lane_sequence
-      .lane_segment(lane_seg_start_idx).lane_point(lane_point_start_idx);
+  int lane_point_start_idx =
+      lane_sequence.lane_segment(lane_seg_start_idx).adc_lane_point_idx();
+  if (lane_point_start_idx >=
+      lane_sequence.lane_segment(lane_seg_start_idx).lane_point_size()) {
+    lane_point_start_idx =
+        lane_sequence.lane_segment(lane_seg_start_idx).lane_point_size() - 1;
+  }
+  const LanePoint& start_lane_point =
+      lane_sequence.lane_segment(lane_seg_start_idx)
+          .lane_point(lane_point_start_idx);
 
   // Get lane info.
   double pos_delta_x = position.x() - start_lane_point.position().x();

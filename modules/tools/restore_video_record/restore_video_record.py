@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ###############################################################################
 # Copyright 2019 The Apollo Authors. All Rights Reserved.
@@ -30,22 +30,56 @@ from absl import flags
 from absl import logging
 import cv2
 
-from cyber_py.record import RecordReader, RecordWriter
+from cyber_py3.record import RecordReader, RecordWriter
 from modules.drivers.proto.sensor_image_pb2 import CompressedImage
+
 
 flags.DEFINE_string('from_record', None, 'The source record file that needs to be restored.')
 flags.DEFINE_string('to_record', None, 'The restored record file.')
 
-VIDEO_CHANNELS = {
-    '/apollo/sensor/camera/front_12mm/image/compressed': 'front12mm',
-    '/apollo/sensor/camera/front_6mm/image/compressed': 'front6mm',
-    '/apollo/sensor/camera/left_fisheye/image/compressed': 'left_fisheye',
-    '/apollo/sensor/camera/right_fisheye/image/compressed': 'right_fisheye',
-    '/apollo/sensor/camera/rear_6mm/image/compressed': 'rear6mm',
+# The compressed channels that have videos we need to decode
+IMAGE_FRONT_6MM_CHANNEL = '/apollo/sensor/camera/front_6mm/image/compressed'
+IMAGE_FRONT_12MM_CHANNEL = '/apollo/sensor/camera/front_12mm/image/compressed'
+IMAGE_REAR_6MM_CHANNEL = '/apollo/sensor/camera/rear_6mm/image/compressed'
+IMAGE_LEFT_FISHEYE_CHANNEL = '/apollo/sensor/camera/left_fisheye/image/compressed'
+IMAGE_RIGHT_FISHEYE_CHANNEL = '/apollo/sensor/camera/right_fisheye/image/compressed'
+
+VIDEO_FRONT_6MM_CHANNEL = '/apollo/sensor/camera/front_6mm/video/compressed'
+VIDEO_FRONT_12MM_CHANNEL = '/apollo/sensor/camera/front_12mm/video/compressed'
+VIDEO_REAR_6MM_CHANNEL = '/apollo/sensor/camera/rear_6mm/video/compressed'
+VIDEO_LEFT_FISHEYE_CHANNEL = '/apollo/sensor/camera/left_fisheye/video/compressed'
+VIDEO_RIGHT_FISHEYE_CHANNEL = '/apollo/sensor/camera/right_fisheye/video/compressed'
+
+VIDEO_CHANNELS = [
+    IMAGE_FRONT_6MM_CHANNEL,
+    IMAGE_FRONT_12MM_CHANNEL,
+    IMAGE_REAR_6MM_CHANNEL,
+    IMAGE_LEFT_FISHEYE_CHANNEL,
+    IMAGE_RIGHT_FISHEYE_CHANNEL,
+    VIDEO_FRONT_6MM_CHANNEL,
+    VIDEO_FRONT_12MM_CHANNEL,
+    VIDEO_REAR_6MM_CHANNEL,
+    VIDEO_LEFT_FISHEYE_CHANNEL,
+    VIDEO_RIGHT_FISHEYE_CHANNEL,
+]
+
+VIDEO_IMAGE_MAP = {
+    IMAGE_FRONT_6MM_CHANNEL: IMAGE_FRONT_6MM_CHANNEL,
+    IMAGE_FRONT_12MM_CHANNEL: IMAGE_FRONT_12MM_CHANNEL,
+    IMAGE_REAR_6MM_CHANNEL: IMAGE_REAR_6MM_CHANNEL,
+    IMAGE_LEFT_FISHEYE_CHANNEL: IMAGE_LEFT_FISHEYE_CHANNEL,
+    IMAGE_RIGHT_FISHEYE_CHANNEL: IMAGE_RIGHT_FISHEYE_CHANNEL,
+    VIDEO_FRONT_6MM_CHANNEL: IMAGE_FRONT_6MM_CHANNEL,
+    VIDEO_FRONT_12MM_CHANNEL: IMAGE_FRONT_12MM_CHANNEL,
+    VIDEO_REAR_6MM_CHANNEL: IMAGE_REAR_6MM_CHANNEL,
+    VIDEO_LEFT_FISHEYE_CHANNEL: IMAGE_LEFT_FISHEYE_CHANNEL,
+    VIDEO_RIGHT_FISHEYE_CHANNEL: IMAGE_RIGHT_FISHEYE_CHANNEL,
 }
+
 
 class VideoConverter(object):
     """Convert video into images."""
+
     def __init__(self, work_dir, topic):
         # Initial type of video frames that defined in apollo video drive proto
         # The initial frame has meta data information shared by the following tens of frames
@@ -57,7 +91,7 @@ class VideoConverter(object):
         self.image_dir = '{}_images'.format(self.video_file)
         makedirs(video_dir)
         makedirs(self.image_dir)
-        self.frame_writer = open(self.video_file, 'w+')
+        self.frame_writer = open(self.video_file, 'wb+')
 
     def close_writer(self):
         """Close the video frames writer"""
@@ -96,6 +130,7 @@ class VideoConverter(object):
             shutil.move(os.path.join(self.image_dir, image_file),
                         os.path.join(overall_image_dir, image_file))
 
+
 def restore_record(input_record, output_record):
     """Entrance of processing."""
     # Define working dirs that store intermediate results in the middle of processing
@@ -127,20 +162,23 @@ def restore_record(input_record, output_record):
     reader = RecordReader(input_record)
     for message in reader.read_messages():
         message_content = message.message
+        message_topic = message.topic
         if message.topic in VIDEO_CHANNELS:
             message_content = retrieve_image(image_dir, message)
+            message_topic = VIDEO_IMAGE_MAP[message.topic]
             if not message_content:
                 continue
         counter += 1
         if counter % 1000 == 0:
             logging.info('rewriting {} th message to record {}'.format(counter, output_record))
-        writer.write_message(message.topic, message_content, message.timestamp)
-        if message.topic not in topic_descs:
-            topic_descs[message.topic] = reader.get_protodesc(message.topic)
-            writer.write_channel(message.topic, message.data_type, topic_descs[message.topic])
+        writer.write_message(message_topic, message_content, message.timestamp)
+        if message_topic not in topic_descs:
+            topic_descs[message_topic] = reader.get_protodesc(message_topic)
+            writer.write_channel(message_topic, message.data_type, topic_descs[message_topic])
     writer.close()
 
     logging.info('All Done, converted record: {}'.format(output_record))
+
 
 def retrieve_image(image_dir, message):
     """Actually change the content of message from video bytes to image bytes"""
@@ -164,15 +202,18 @@ def retrieve_image(image_dir, message):
     message_proto.data = message_proto.data.replace(message_proto.data[:], bytearray(encode_img))
     return message_proto.SerializeToString()
 
+
 def get_message_id(timestamp, topic):
-    """Unify the way to get an unique identifier for the given message"""
+    """Unify the way to get a unique identifier for the given message"""
     return '{}{}'.format(timestamp, topic.replace('/', '_'))
+
 
 def image_message_to_proto(py_message):
     """Message to prototype"""
     message_proto = CompressedImage()
     message_proto.ParseFromString(py_message.message)
     return message_proto
+
 
 def makedirs(dir_path):
     """Make directories recursively."""
@@ -185,6 +226,7 @@ def makedirs(dir_path):
             logging.error('Failed to makedir ' + dir_path)
             raise
 
+
 def main(argv):
     """Main process."""
     if not flags.FLAGS.from_record or not os.path.exists(flags.FLAGS.from_record):
@@ -195,6 +237,7 @@ def main(argv):
         to_record = '{}_restored'.format(flags.FLAGS.from_record)
         logging.warn('The default restored record file is set as {}'.format(to_record))
     restore_record(flags.FLAGS.from_record, to_record)
+
 
 if __name__ == '__main__':
     app.run(main)

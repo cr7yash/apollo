@@ -16,22 +16,21 @@
 
 #pragma once
 
+#include <adolc/adolc.h>
+#include <adolc/adolc_sparse.h>
+#include <adolc/adouble.h>
+#include <coin/IpIpoptApplication.hpp>
+#include <coin/IpIpoptCalculatedQuantities.hpp>
+#include <coin/IpIpoptData.hpp>
+#include <coin/IpOrigIpoptNLP.hpp>
+#include <coin/IpSolveStatistics.hpp>
+#include <coin/IpTNLP.hpp>
+#include <coin/IpTNLPAdapter.hpp>
+#include <coin/IpTypes.hpp>
+
 #include <map>
 #include <utility>
 #include <vector>
-
-#include "adolc/adolc.h"
-#include "adolc/adolc_sparse.h"
-#include "adolc/adouble.h"
-
-#include "IpIpoptApplication.hpp"
-#include "IpIpoptCalculatedQuantities.hpp"
-#include "IpIpoptData.hpp"
-#include "IpOrigIpoptNLP.hpp"
-#include "IpSolveStatistics.hpp"
-#include "IpTNLP.hpp"
-#include "IpTNLPAdapter.hpp"
-#include "IpTypes.hpp"
 
 #define tag_f 1
 #define tag_g 2
@@ -44,7 +43,7 @@ namespace planning {
 class CosThetaIpoptInterface : public Ipopt::TNLP {
  public:
   explicit CosThetaIpoptInterface(std::vector<std::pair<double, double>> points,
-                                  std::vector<double> lateral_bounds);
+                                  std::vector<double> bounds);
 
   virtual ~CosThetaIpoptInterface() = default;
 
@@ -122,9 +121,9 @@ class CosThetaIpoptInterface : public Ipopt::TNLP {
   //***************    end   ADOL-C part ***********************************
 
  private:
-  std::vector<std::pair<double, double>> init_points_;
+  std::vector<std::pair<double, double>> ref_points_;
 
-  std::vector<double> lateral_bounds_;
+  std::vector<double> bounds_;
 
   std::vector<double> opt_x_;
 
@@ -177,8 +176,8 @@ class CosThetaIpoptInterface : public Ipopt::TNLP {
   unsigned int* cind_L_; /* column indices */
   double* hessval_;      /* values */
 
-  int nnz_jac_;
-  int nnz_L_;
+  int nnz_jac_ = 0;
+  int nnz_L_ = 0;
   int options_g_[4];
   int options_L_[4];
 

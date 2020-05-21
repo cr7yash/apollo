@@ -21,7 +21,6 @@
 #include "modules/planning/common/speed_limit.h"
 
 #include <algorithm>
-#include <limits>
 
 #include "cyber/common/log.h"
 
@@ -57,9 +56,7 @@ double SpeedLimit::GetSpeedLimitByS(const double s) const {
   return it_lower->second;
 }
 
-void SpeedLimit::Clear() {
-  speed_limit_points_.clear();
-}
+void SpeedLimit::Clear() { speed_limit_points_.clear(); }
 
 }  // namespace planning
 }  // namespace apollo

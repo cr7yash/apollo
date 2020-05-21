@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ###############################################################################
 # Copyright 2017 The Apollo Authors. All Rights Reserved.
@@ -19,7 +19,6 @@
 Message Handle
 """
 
-import ast
 import curses
 import importlib
 from curses import panel
@@ -44,7 +43,7 @@ class ModuleConf(object):
 
     def parse_from_file(self):
         mod = importlib.import_module(self.proto_file)
-        self.proto = ast.literal_eval("mod." + self.proto_class)
+        self.proto = eval("mod." + self.proto_class)
 
         try:
             with open(APOLLO_ROOT + self.conf_file, 'r') as prototxt:
@@ -111,10 +110,10 @@ class Field(object):
            descriptor.type == descriptor.TYPE_MESSAGE:
             for descript, item in entity.ListFields():
                 if row >= self.winy - 1:
-                    if col >= (self.winx / 3) * 2:
+                    if col >= (self.winx // 3) * 2:
                         return row, col
                     row = self.basex
-                    col = col + self.winx / 3
+                    col = col + self.winx // 3
 
                 descript_path.append(descript.name)
                 if descript.label == descript.LABEL_REPEATED:

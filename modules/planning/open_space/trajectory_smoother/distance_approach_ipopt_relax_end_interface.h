@@ -19,18 +19,20 @@
  */
 
 #pragma once
+
+#include <adolc/adolc.h>
+#include <adolc/adolc_openmp.h>
+#include <adolc/adolc_sparse.h>
+#include <adolc/adouble.h>
 #include <omp.h>
+#include <coin/IpTNLP.hpp>
+#include <coin/IpTypes.hpp>
+
 #include <algorithm>
 #include <limits>
 #include <vector>
-#include "Eigen/Dense"
-#include "IpTNLP.hpp"
-#include "IpTypes.hpp"
 
-#include "adolc/adolc.h"
-#include "adolc/adolc_openmp.h"
-#include "adolc/adolc_sparse.h"
-#include "adolc/adouble.h"
+#include "Eigen/Dense"
 
 #include "cyber/common/log.h"
 #include "cyber/common/macros.h"
@@ -50,8 +52,8 @@
 namespace apollo {
 namespace planning {
 
-class DistanceApproachIPOPTRelaxEndInterface :
-    public DistanceApproachInterface {
+class DistanceApproachIPOPTRelaxEndInterface
+    : public DistanceApproachInterface {
  public:
   explicit DistanceApproachIPOPTRelaxEndInterface(
       const size_t horizon, const double ts, const Eigen::MatrixXd& ego,

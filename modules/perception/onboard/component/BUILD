@@ -70,6 +70,7 @@ cc_library(
         "//modules/v2x/proto:v2x_traffic_light_proto",
         "@eigen",
     ],
+    alwayslink = True,
 )
 
 cc_binary(
@@ -87,6 +88,7 @@ cc_library(
         "radar_detection_component.cc",
         "recognition_component.cc",
         "segmentation_component.cc",
+        "detection_component.cc",
     ],
     hdrs = [
         "fusion_component.h",
@@ -95,6 +97,7 @@ cc_library(
         "radar_detection_component.h",
         "recognition_component.h",
         "segmentation_component.h",
+        "detection_component.h",
     ],
     copts = [
         '-DMODULE_NAME=\\"perception\\"',
@@ -131,6 +134,7 @@ cc_library(
         "//modules/perception/lidar/lib/scene_manager/ground_service",
         "//modules/perception/lidar/lib/scene_manager/roi_service",
         "//modules/perception/lidar/lib/segmentation/cnnseg:cnn_segmentation",
+        "//modules/perception/lidar/lib/segmentation/ncut:ncut_segmentation",
         "//modules/perception/lidar/lib/tracker/multi_lidar_fusion:mlf_engine",
         "//modules/perception/lidar/lib/tracker/multi_lidar_fusion:mlf_track_object_matcher",
         "//modules/perception/lidar/lib/tracker/multi_lidar_fusion:mlf_tracker",
@@ -168,6 +172,7 @@ cc_library(
         "//modules/transform/proto:transform_proto",
         "@eigen",
     ],
+    alwayslink = True,
 )
 
 cpplint()

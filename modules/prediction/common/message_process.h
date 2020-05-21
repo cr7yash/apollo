@@ -20,12 +20,14 @@
 
 #pragma once
 
-#include <memory>
 #include <string>
+#include "cyber/proto/record.pb.h"
 
 #include "modules/localization/proto/localization.pb.h"
 #include "modules/planning/proto/planning.pb.h"
+#include "modules/prediction/proto/prediction_conf.pb.h"
 #include "modules/prediction/proto/prediction_obstacle.pb.h"
+#include "modules/storytelling/proto/story.pb.h"
 
 namespace apollo {
 namespace prediction {
@@ -34,7 +36,16 @@ class MessageProcess {
  public:
   MessageProcess() = delete;
 
-  static bool Init();
+  static bool Init(const PredictionConf &prediction_conf);
+
+  static bool InitContainers();
+
+  static bool InitEvaluators(const PredictionConf &prediction_conf);
+
+  static bool InitPredictors(const PredictionConf &prediction_conf);
+
+  static void ContainerProcess(
+      const perception::PerceptionObstacles &perception_obstacles);
 
   static void OnPerception(
       const perception::PerceptionObstacles &perception_obstacles,
@@ -45,7 +56,9 @@ class MessageProcess {
 
   static void OnPlanning(const planning::ADCTrajectory &adc_trajectory);
 
-  static void ProcessOfflineData(const std::string &record_filename);
+  static void OnStoryTelling(const storytelling::Stories &story);
+
+  static void ProcessOfflineData(const std::string &record_filepath);
 };
 
 }  // namespace prediction

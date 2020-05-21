@@ -22,7 +22,6 @@
 
 #include <list>
 #include <map>
-#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -32,6 +31,8 @@
 #include "modules/common/proto/geometry.pb.h"
 #include "modules/common/vehicle_state/proto/vehicle_state.pb.h"
 #include "modules/localization/proto/pose.pb.h"
+#include "modules/planning/proto/learning_data.pb.h"
+#include "modules/planning/proto/pad_msg.pb.h"
 #include "modules/planning/proto/planning.pb.h"
 #include "modules/planning/proto/planning_config.pb.h"
 #include "modules/planning/proto/planning_internal.pb.h"
@@ -71,6 +72,8 @@ class Frame {
         const common::TrajectoryPoint &planning_start_point,
         const common::VehicleState &vehicle_state);
 
+  virtual ~Frame() = default;
+
   const common::TrajectoryPoint &PlanningStartPoint() const;
 
   common::Status Init(
@@ -94,6 +97,10 @@ class Frame {
   Obstacle *Find(const std::string &id);
 
   const ReferenceLineInfo *FindDriveReferenceLineInfo();
+
+  const ReferenceLineInfo *FindTargetReferenceLineInfo();
+
+  const ReferenceLineInfo *FindFailedReferenceLineInfo();
 
   const ReferenceLineInfo *DriveReferenceLineInfo() const;
 
@@ -158,6 +165,17 @@ class Frame {
 
   perception::TrafficLight GetSignal(const std::string &traffic_light_id) const;
 
+  const DrivingAction &GetPadMsgDrivingAction() const {
+    return pad_msg_driving_action_;
+  }
+
+  std::list<ReferenceLineInfo>* mutable_reference_line_infos() {
+    return &reference_line_info_;
+  }
+
+  const LearningDataFrame &learning_data_frame() const {
+      return learning_data_frame_; }
+
  private:
   common::Status InitFrameData();
 
@@ -182,7 +200,13 @@ class Frame {
 
   void ReadTrafficLights();
 
+  void ReadPadMsgDrivingAction();
+  void ResetPadMsgDrivingAction();
+
+  void ReadLearningDataFrame();
+
  private:
+  static DrivingAction pad_msg_driving_action_;
   uint32_t sequence_num_ = 0;
   LocalView local_view_;
   const hdmap::HDMap *hdmap_ = nullptr;
@@ -215,7 +239,7 @@ class Frame {
 
   common::monitor::MonitorLogBuffer monitor_logger_buffer_;
 
-  std::tuple<bool, double, double, double> pull_over_info_;
+  LearningDataFrame learning_data_frame_;
 };
 
 class FrameHistory : public IndexedQueue<uint32_t, Frame> {

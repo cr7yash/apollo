@@ -25,7 +25,6 @@
 
 #include "modules/planning/common/frame.h"
 #include "modules/planning/common/obstacle.h"
-#include "modules/planning/proto/dp_st_speed_config.pb.h"
 #include "modules/planning/tasks/task.h"
 
 namespace apollo {
@@ -63,11 +62,10 @@ class SpeedDecider : public Task {
    * @return true if the ADC believe it should follow the obstacle, and
    *         false otherwise.
    **/
-  bool CheckIsFollowByT(const STBoundary& boundary) const;
+  bool CheckIsFollow(const Obstacle& obstacle,
+                     const STBoundary& boundary) const;
 
-  bool CheckStopForPedestrian(
-      const Obstacle& obstacle,
-      std::unordered_map<std::string, double>* pedestrian_stop_times) const;
+  bool CheckStopForPedestrian(const Obstacle& obstacle) const;
 
   bool CreateStopDecision(const Obstacle& obstacle,
                           ObjectDecisionType* const stop_decision,
@@ -105,6 +103,7 @@ class SpeedDecider : public Task {
   bool IsFollowTooClose(const Obstacle& obstacle) const;
 
  private:
+  static std::unordered_map<std::string, double> pedestrian_stop_timer_;
   SLBoundary adc_sl_boundary_;
   common::TrajectoryPoint init_point_;
   const ReferenceLine* reference_line_ = nullptr;

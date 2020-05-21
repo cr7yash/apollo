@@ -17,7 +17,7 @@ cc_test(
     srcs = ["layer_test.cc"],
     deps = [
         ":layer_lib",
-        "@gtest//:main",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -36,7 +36,7 @@ cc_test(
     srcs = ["inference_test.cc"],
     deps = [
         ":inference_lib",
-        "@gtest//:main",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -47,6 +47,7 @@ cc_library(
     deps = [
         ":inference_lib",
         "//modules/perception/inference/caffe:caffe_net_lib",
+        "//modules/perception/inference/paddlepaddle:paddle_net_lib",
         "//modules/perception/inference/tensorrt:rt_net",
         "//modules/perception/inference/utils:inference_util_lib",
     ],
@@ -58,7 +59,7 @@ cc_test(
     srcs = ["inference_factory_test.cc"],
     deps = [
         ":inference_factory_lib",
-        "@gtest//:main",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

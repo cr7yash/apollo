@@ -16,6 +16,9 @@
 
 #include "modules/planning/math/discretized_points_smoothing/cos_theta_smoother.h"
 
+#include <coin/IpIpoptApplication.hpp>
+#include <coin/IpSolveStatistics.hpp>
+
 #include "cyber/common/log.h"
 #include "modules/planning/math/discretized_points_smoothing/cos_theta_ipopt_interface.h"
 
